@@ -80,59 +80,69 @@ const userSchema = new mongoose.Schema(
 );
 
 // --- Mongoose Middleware (Pre-save hooks) ---
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 12);
-  this.passwordConfirm = undefined;
-  next();
-});
+// userSchema.pre('save', async function (next) {
+//   if (!this.isModified('password')) return next();
+//   this.password = await bcrypt.hash(this.password, 12);
+//   this.passwordConfirm = undefined;
+//   next();
+// });
 
-userSchema.pre('save', function (next) {
-  if (!this.isModified('password') || this.isNew) return next();
-  this.passwordChangedAt = Date.now() - 1000;
-  next();
-});
+// userSchema.pre('save', function (next) {
+//   if (!this.isModified('password') || this.isNew) return next();
+//   this.passwordChangedAt = Date.now() - 1000;
+//   next();
+// });
 
-userSchema.pre(/^find/, function (next) {
-  this.find({ active: { $ne: false } });
-  next();
-});
+// userSchema.pre(/^find/, function (next) {
+//   this.find({ active: { $ne: false } });
+//   next();
+// });
 
-// --- Mongoose Instance Methods ---
+// // --- Mongoose Instance Methods ---
 
-// 1) Method to compare passwords during login
-userSchema.methods.correctPassword = async function (
-  candidatePassword, // This is the plain text password from req.body
-  userPassword // This is the hashed password from the DB (retrieved with select('+password'))
-) {
-  // FIX 23: Added a check for missing arguments for robustness
-  if (!candidatePassword || !userPassword) {
-      console.error('correctPassword: Missing candidatePassword or userPassword');
-      return false;
-  }
-  return await bcrypt.compare(candidatePassword, userPassword);
-};
+// // 1) Method to compare passwords during login
+// userSchema.methods.correctPassword = async function (
+//   candidatePassword, // This is the plain text password from req.body
+//   userPassword // This is the hashed password from the DB (retrieved with select('+password'))
+// ) {
+//   // FIX 23: Added a check for missing arguments for robustness
+//   if (!candidatePassword || !userPassword) {
+//       console.error('correctPassword: Missing candidatePassword or userPassword');
+//       return false;
+//   }
+//   return await bcrypt.compare(candidatePassword, userPassword);
+// };
 
-// 2) Method to check if password was changed after a JWT was issued
-userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
-  if (this.passwordChangedAt) {
-    const changedTimestamp = parseInt(this.passwordChangedAt.getTime() / 1000, 10);
-    return JWTTimestamp < changedTimestamp;
-  }
-  return false;
-};
+// // 2) Method to check if password was changed after a JWT was issued
+// userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
+//   if (this.passwordChangedAt) {
+//     const changedTimestamp = parseInt(this.passwordChangedAt.getTime() / 1000, 10);
+//     return JWTTimestamp < changedTimestamp;
+//   }
+//   return false;
+// };
 
-// 3) Method to generate a password reset token
-userSchema.methods.createPasswordResetToken = function () {
-  const resetToken = crypto.randomBytes(32).toString('hex');
-  this.passwordResetToken = crypto
-    .createHash('sha256')
-    .update(resetToken)
-    .digest('hex');
-  console.log({ resetToken }, this.passwordResetToken);
-  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
-  return resetToken;
-};
+// // 3) Method to generate a password reset token
+// userSchema.methods.createPasswordResetToken = function () {
+//   const resetToken = crypto.randomBytes(32).toString('hex');
+//   this.passwordResetToken = crypto
+//     .createHash('sha256')
+//     .update(resetToken)
+//     .digest('hex');
+//   console.log({ resetToken }, this.passwordResetToken);
+//   this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+//   return resetToken;
+// };
+userSchema.pre("save", async function (next) {
+    if(!this.isModified("password")) return next();
+
+    this.password = await bcrypt.hash(this.password, 10)
+    next()
+})
+
+userSchema.methods.isPasswordCorrect = async function(password){
+    return await bcrypt.compare(password, this.password)
+}
 
 userSchema.methods.generateAccessToken = function(){
     return jwt.sign(
