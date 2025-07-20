@@ -9,7 +9,7 @@ import User from "../model/user.model.js";
     }
 
 
-const generateAccessAndRefereshTokens=async(userId){
+const generateAccessAndRefereshTokens=async(userId) =>{
     try {
                 const user =await User.findById(userId);
                 const accessToken=user.generateAccessToken();
