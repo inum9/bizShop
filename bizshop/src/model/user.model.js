@@ -65,6 +65,13 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+     storeId: { // This will hold the ObjectId of the store they own
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Store', // Ensure this matches the model name 'Store'
+      // unique: true // If one user can only own ONE store.
+      // required: true // A user needs to create a store to use BizShop.
+                       // We can make this required when a store is created.
+    },
     refreshToken: String, // Correctly added
     // --- Association with their created Store (Multi-tenancy) ---
     storeId: { // This will hold the ObjectId of the store they own
@@ -76,7 +83,10 @@ const userSchema = new mongoose.Schema(
     timestamps: true, // Adds createdAt and updatedAt timestamps automatically
     toJSON: { virtuals: true }, // Include virtual properties when converting to JSON
     toObject: { virtuals: true }, // Include virtual properties when converting to Object
-  }
+
+  },
+
+ 
 );
 
 // --- Mongoose Middleware (Pre-save hooks) ---
