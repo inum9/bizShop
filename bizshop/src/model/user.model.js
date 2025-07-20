@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import validator from 'validator'; // For email validation
 import crypto from 'crypto'; // Node.js built-in module for generating random tokens
+import jwt from 'jsonwebtoken'; // FIX 22: Added missing jwt import for generateAccessToken/RefreshToken
 
 const userSchema = new mongoose.Schema(
   {
@@ -64,19 +65,11 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-      refreshToken: String,
+    refreshToken: String, // Correctly added
     // --- Association with their created Store (Multi-tenancy) ---
-    // If a user creates one e-commerce website, this links them to their store.
-    // We'll define the 'Store' model later.
-    // For now, it could be an ObjectId reference, or just a simple string if we are
-    // keeping it decoupled for a simpler multi-store approach initially.
-    // Let's assume one user owns one store for simplicity based on your project description.
     storeId: { // This will hold the ObjectId of the store they own
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Store', // Reference to the 'Store' model (which we will create next)
-      // unique: true // If one user can only own ONE store.
-      // required: true // A user needs to create a store to use BizShop.
-                       // We can make this required when a store is created.
     }
   },
   {
@@ -87,32 +80,20 @@ const userSchema = new mongoose.Schema(
 );
 
 // --- Mongoose Middleware (Pre-save hooks) ---
-
-// 1) Hash password before saving new user or updating password
 userSchema.pre('save', async function (next) {
-  // Only run this function if password was actually modified
   if (!this.isModified('password')) return next();
-
-  // Hash the password with cost of 12
   this.password = await bcrypt.hash(this.password, 12);
-
-  // Delete passwordConfirm field (it's only for validation, not storage)
   this.passwordConfirm = undefined;
   next();
 });
 
-// 2) Update passwordChangedAt timestamp on password change
 userSchema.pre('save', function (next) {
   if (!this.isModified('password') || this.isNew) return next();
-
-  this.passwordChangedAt = Date.now() - 1000; // Subtract 1 sec to ensure token is created after pass change
+  this.passwordChangedAt = Date.now() - 1000;
   next();
 });
 
-// 3) Pre-find hook for soft deletion (active: false)
-// This makes sure that find queries only return 'active' users by default
 userSchema.pre(/^find/, function (next) {
-  // 'this' points to the current query
   this.find({ active: { $ne: false } });
   next();
 });
@@ -121,9 +102,14 @@ userSchema.pre(/^find/, function (next) {
 
 // 1) Method to compare passwords during login
 userSchema.methods.correctPassword = async function (
-  candidatePassword,
-  userPassword // This is the hashed password from the DB (select: false allows us to access it)
+  candidatePassword, // This is the plain text password from req.body
+  userPassword // This is the hashed password from the DB (retrieved with select('+password'))
 ) {
+  // FIX 23: Added a check for missing arguments for robustness
+  if (!candidatePassword || !userPassword) {
+      console.error('correctPassword: Missing candidatePassword or userPassword');
+      return false;
+  }
   return await bcrypt.compare(candidatePassword, userPassword);
 };
 
@@ -131,28 +117,21 @@ userSchema.methods.correctPassword = async function (
 userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
   if (this.passwordChangedAt) {
     const changedTimestamp = parseInt(this.passwordChangedAt.getTime() / 1000, 10);
-    return JWTTimestamp < changedTimestamp; // True if password was changed after token issued
+    return JWTTimestamp < changedTimestamp;
   }
-  // False means password was NOT changed
   return false;
 };
 
 // 3) Method to generate a password reset token
 userSchema.methods.createPasswordResetToken = function () {
-  const resetToken = crypto.randomBytes(32).toString('hex'); // Generate a random hex string
-
-  // Hash the token and store it in the database
+  const resetToken = crypto.randomBytes(32).toString('hex');
   this.passwordResetToken = crypto
     .createHash('sha256')
     .update(resetToken)
     .digest('hex');
-
-  console.log({ resetToken }, this.passwordResetToken); // Log for debugging, in real app, send resetToken to user via email
-
-  // Set token expiration (e.g., 10 minutes from now)
+  console.log({ resetToken }, this.passwordResetToken);
   this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
-
-  return resetToken; // Return the unhashed token to send to the user
+  return resetToken;
 };
 
 userSchema.methods.generateAccessToken = function(){
@@ -160,8 +139,8 @@ userSchema.methods.generateAccessToken = function(){
         {
             _id: this._id,
             email: this.email,
-            username: this.username,
-            fullName: this.fullName
+            name: this.name, // FIX 24: Changed 'username' to 'name' to match schema
+            role: this.role // FIX 25: Added 'role' for quick access in token payload
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
@@ -174,7 +153,6 @@ userSchema.methods.generateRefreshToken = function(){
     return jwt.sign(
         {
             _id: this._id,
-            
         },
         process.env.REFRESH_TOKEN_SECRET,
         {
@@ -182,7 +160,6 @@ userSchema.methods.generateRefreshToken = function(){
         }
     )
 }
-
 
 const User = mongoose.model('User', userSchema);
 
