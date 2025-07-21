@@ -21,12 +21,10 @@ const productSchema = new mongoose.Schema(
       required: [true, 'A product must have a price'],
       min: [0, 'Price must be a positive number'],
     },
-    // Optional: discounted price
     priceDiscount: {
       type: Number,
       validate: {
         validator: function (val) {
-          // 'this' points to current document on NEW document creation
           return val < this.price;
         },
         message: 'Discount price ({VALUE}) should be below regular price',
@@ -38,38 +36,26 @@ const productSchema = new mongoose.Schema(
       min: [0, 'Stock must be a non-negative number'],
       default: 0,
     },
-    images: [
-      {
-        url: {
-          type: String, // URL to the image (e.g., Cloudinary URL or local path)
-          required: [true, 'A product must have at least one image'],
-        },
-        public_id: String, // If using Cloudinary or similar service
-      },
-    ],
-    // Optional: Category for filtering/organization
+    // --- REMOVED: images field ---
     category: {
       type: String,
       trim: true,
     },
-    // Optional: Brand
     brand: {
       type: String,
       trim: true,
     },
-    // Average rating (virtual or calculated)
     ratingsAverage: {
       type: Number,
       default: 0,
       min: [0, 'Rating must be above 0'],
       max: [5, 'Rating must be below 5.0'],
-      set: val => Math.round(val * 10) / 10 // Round to 1 decimal place
+      set: val => Math.round(val * 10) / 10
     },
     ratingsQuantity: {
       type: Number,
       default: 0,
     },
-    // Reference to the Store this product belongs to (Multi-tenancy)
     store: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Store',
@@ -77,23 +63,15 @@ const productSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt
-    toJSON: { virtuals: true }, // Include virtuals when converting to JSON
-    toObject: { virtuals: true }, // Include virtuals when converting to object
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
 
-// Optional: Indexing for better query performance
-productSchema.index({ store: 1, name: 1 }, { unique: true }); // A store cannot have two products with the same name
+productSchema.index({ store: 1, name: 1 }, { unique: true });
 productSchema.index({ price: 1 });
 productSchema.index({ category: 1 });
-
-// Virtual populate for reviews (if you add a Review model later)
-// productSchema.virtual('reviews', {
-//   ref: 'Review',
-//   foreignField: 'product',
-//   localField: '_id'
-// });
 
 const Product = mongoose.model('Product', productSchema);
 
