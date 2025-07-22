@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { razorPayInstance } from "../config/razorpay.js";
+import razorpayInstance from "../config/razorpay.js";
 
 
 const createRazorpayPayment = asyncHandler(async (req, res) => {
@@ -41,7 +41,7 @@ const createRazorpayPayment = asyncHandler(async (req, res) => {
     },
   };
  try {
-    const razorpayOrder = await razorPayInstance.orders.create(orderOptions);
+    const razorpayOrder = await razorpayInstance.orders.create(orderOptions);
     if (!razorpayOrder) {
       throw new ApiError(500, "Error creating Razorpay order: No response from API."); // Use 500 for server-side issues
     }
