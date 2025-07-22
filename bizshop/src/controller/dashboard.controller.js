@@ -4,7 +4,7 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import Order from '../model/order.model.js';     // For total sales, orders, and customers
 import Product from '../model/product.model.js'; // For total products
-import User from '../models/User.js';       // To get distinct customer count (optional, can be done via orders)
+
 
 /**
  * @desc    Get dashboard statistics for the authenticated store owner's store
