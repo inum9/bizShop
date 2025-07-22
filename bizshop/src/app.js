@@ -16,10 +16,12 @@ import  {productRoutes} from "../src/routes/product.routes.js"
 import router from "./routes/order.routes.js";
 import { billingRouter } from "./routes/Billing.routes.js";
 import  dashrouter from "../src/routes/dashboard.routes.js"
+import OrderRouter from "./routes/customer.routes.js";
 app.use("/api/v1/user",userRoutes);
 app.use("/api/v1/store",storeRouter);
 app.use("/api/v1/product",productRoutes);
 app.use("/api/v1/order",router);
 app.use("/api/v1/payment",billingRouter);
 app.use("/api/v1/dashboard",dashrouter);
+app.use("/api/v1/customer",OrderRouter);
 export {app};
