@@ -14,8 +14,10 @@ import { userRoutes } from "./routes/user.routes.js";
 import { storeRouter } from "./routes/store.router.js";
 import  {productRoutes} from "../src/routes/product.routes.js"
 import router from "./routes/order.routes.js";
+import { billingRouter } from "./routes/Billing.routes.js";
 app.use("/api/v1/user",userRoutes);
 app.use("/api/v1/store",storeRouter);
 app.use("/api/v1/product",productRoutes);
 app.use("/api/v1/order",router);
+app.use("/api/v1/payment",billingRouter);
 export {app};
